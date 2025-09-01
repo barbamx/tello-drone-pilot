@@ -3,7 +3,7 @@ import threading
 import time
 import os
 from tello.tello import Tello
-from pynput import keyboard
+import keyboard
 
 
 class TelloKeyboardController:
@@ -31,70 +31,49 @@ class TelloKeyboardController:
     print("  ESC         - Exit")
     print("\nPress keys to control the drone...")
 
-    def on_press(self, key):
-        """Handle key press events"""
+    def handle_key(self, e):
+        """Handle key press events using keyboard library"""
         try:
-            if key == keyboard.Key.enter:
+            if e.name == "enter":
                 print("ENTER pressed - Sending takeoff command")
                 self.tello.send_command("takeoff")
-
-            elif key == keyboard.Key.delete:
+            elif e.name == "delete":
                 print("DEL pressed - Sending land command")
                 self.tello.send_command("land")
-
-            elif key == keyboard.Key.up:
+            elif e.name == "up":
                 print("UP pressed - Move up 20cm")
                 self.tello.send_command("up 20")
-
-            elif key == keyboard.Key.down:
+            elif e.name == "down":
                 print("DOWN pressed - Move down 20cm")
                 self.tello.send_command("down 20")
-
-            elif key == keyboard.Key.left:
+            elif e.name == "left":
                 print("LEFT pressed - Move left 20cm")
                 self.tello.send_command("left 20")
-
-            elif key == keyboard.Key.right:
+            elif e.name == "right":
                 print("RIGHT pressed - Move right 20cm")
                 self.tello.send_command("right 20")
-
-            elif (
-                hasattr(key, "char")
-                and key.char is not None
-                and key.char.lower() == "w"
-            ):
+            elif e.name == "w":
                 print("W pressed - Move front 20cm")
                 self.tello.send_command("forward 20")
-
-            elif (
-                hasattr(key, "char")
-                and key.char is not None
-                and key.char.lower() == "s"
-            ):
+            elif e.name == "s":
                 print("S pressed - Move back 20cm")
                 self.tello.send_command("back 20")
-
-            elif key == keyboard.Key.space:
+            elif e.name == "space":
                 print("SPACE pressed - Emergency stop")
                 self.tello.send_command("emergency")
-
-            elif key == keyboard.Key.esc:
+            elif e.name == "esc":
                 print("ESC pressed - Exiting program...")
                 self.is_running = False
-                # Stop listener
-                return False
-
-        except Exception as e:
-            print(f"Error handling key press: {e}")
+                keyboard.unhook_all()
+        except Exception as ex:
+            print(f"Error handling key press: {ex}")
 
     def run(self):
-        """Main run loop with keyboard listener"""
+        """Main run loop with keyboard event hook"""
         try:
-            with keyboard.Listener(on_press=self.on_press) as listener:
-                while self.is_running:
-                    time.sleep(0.1)
-                listener.stop()
-
+            keyboard.hook(self.handle_key)
+            while self.is_running:
+                time.sleep(0.1)
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received")
         except Exception as e:
