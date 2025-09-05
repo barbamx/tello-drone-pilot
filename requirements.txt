@@ -1,1 +1,5 @@
-pynput ==1.8.1
+keyboard
+#inputs
+mouse
+#pyautogui
+customtkinter
