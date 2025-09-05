@@ -1,3 +1,5 @@
 keyboard
 #inputs
 mouse
+#pyautogui
+customtkinter
