@@ -2,22 +2,38 @@
 
 ## Keyboard Controls
 
-| Key         | Action                |
-|-------------|----------------------|
-| ENTER       | Takeoff               |
-| DEL         | Land                  |
-| UP Arrow    | Move up 20cm          |
-| DOWN Arrow  | Move down 20cm        |
-| LEFT Arrow  | Move left 20cm        |
-| RIGHT Arrow | Move right 20cm       |
-| W           | Move front 20cm       |
-| S           | Move back 20cm        |
-| SPACE       | Emergency stop        |
-| ESC         | Exit                  |
+| Key         | Action                        |
+|-------------|------------------------------|
+| ENTER       | Takeoff                       |
+| DEL         | Land                          |
+| UP Arrow    | Move up 20cm (hold for repeat)|
+| DOWN Arrow  | Move down 20cm (hold for repeat)|
+| LEFT Arrow  | Move left 20cm (hold for repeat)|
+| RIGHT Arrow | Move right 20cm (hold for repeat)|
+| W           | Move forward 20cm (hold for repeat)|
+| S           | Move back 20cm (hold for repeat)|
+| SPACE       | Emergency stop                |
+| ESC         | Exit                          |
 
-**Note:** The drone must be airborne (after takeoff) to accept movement commands. Minimum safe move distance is 20cm.
+- **Hold movement keys** for continuous movement (every 0.15s).
+- The drone must be airborne (after takeoff) to accept movement commands.
+- Minimum safe move distance is 20cm.
+- Flight logs are saved automatically in the `log/` directory after each session.
 
-Flight logs are saved automatically in the `log/` directory after each session.
+## GUI Controls
+
+A modern GUI is available using `customtkinter`:
+
+- **Takeoff** and **Land** buttons
+- **Directional movement** (Up, Down, Left, Right, Forward, Back) — *hold buttons for continuous movement*
+- **Emergency** button for immediate stop
+- **Live stats**: Battery, Speed, Altitude (auto-updating)
+- **Dark mode** interface
+
+To run the GUI:
+```bash
+python gui_controller.py
+```
 
 ## Acceptable Tello Drone SDK Commands
 
@@ -67,11 +83,6 @@ Below is a list of common commands supported by the Tello drone (per the Tello S
 - `acceleration?` — Query acceleration
 - `tof?` — Query TOF distance
 
-### Wi-Fi
-
-- `wifi ssid pass` — Set Wi-Fi SSID and password
-- `wifi?` — Query Wi-Fi SNR
-
 ### Stream
 
 - `streamon` — Enable video stream
@@ -80,3 +91,5 @@ Below is a list of common commands supported by the Tello drone (per the Tello S
 ---
 
 For more details, see the official Tello SDK documentation.
+https://github.com/dji-sdk/Tello-Python
+
