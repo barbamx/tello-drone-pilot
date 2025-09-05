@@ -15,8 +15,13 @@ class TelloGUIController:
         self._move_active = {}
         ctk.set_appearance_mode("dark")  # Modern dark mode
         ctk.set_default_color_theme("blue")
+        self.battery_level = "?"
+        self.speed = "?"
+        self.height = "?"
+        self._stop_stats = False
         self.init_tello()
         self.create_widgets()
+        self.start_stats_polling()
 
     def init_tello(self):
         threading.Thread(target=self._init_tello_thread, daemon=True).start()
@@ -27,7 +32,18 @@ class TelloGUIController:
 
     def create_widgets(self):
         self.master.title("Tello Drone GUI Controller")
-        self.master.geometry("420x380")
+        self.master.geometry("520x520")
+        self.stats_frame = ctk.CTkFrame(self.master)
+        self.stats_frame.pack(fill="x", padx=20, pady=(10, 0))
+        self.stats_label = ctk.CTkLabel(
+            self.stats_frame,
+            text=self._get_stats_text(),
+            font=("Arial", 16),
+            anchor="w",
+            justify="left",
+        )
+        self.stats_label.pack(fill="x", padx=10, pady=8)
+
         frame = ctk.CTkFrame(self.master)
         frame.pack(expand=True, fill="both", padx=20, pady=20)
 
@@ -97,6 +113,54 @@ class TelloGUIController:
         btn_back.grid(row=4, column=1, padx=10, pady=10)
         btn_emergency.grid(row=5, column=0, columnspan=3, padx=10, pady=20, sticky="ew")
 
+    def _get_stats_text(self):
+        return f"Battery: {self.battery_level}%    Speed: {self.speed} cm/s    Altitude: {self.height} cm"
+
+    def start_stats_polling(self):
+        def poll():
+            while not self._stop_stats:
+                self._update_stats()
+                time.sleep(2)
+
+        threading.Thread(target=poll, daemon=True).start()
+
+    def _update_stats(self):
+        # Query Tello for battery, speed, and height
+        try:
+            battery = self._query_stat("battery?")
+            speed = self._query_stat("speed?")
+            height = self._query_stat("height?")
+            if battery is not None:
+                self.battery_level = battery
+            if speed is not None:
+                self.speed = speed
+            if height is not None:
+                self.height = height
+        except Exception as e:
+            print(f"Stats update error: {e}")
+        self._update_stats_label()
+
+    def _query_stat(self, cmd):
+        try:
+            self.tello.send_command(cmd)
+            # Wait for response in log
+            time.sleep(0.5)
+            log = self.tello.get_log()
+            for stat in reversed(log):
+                if stat.command == cmd and stat.response is not None:
+                    # Response is bytes, decode if needed
+                    resp = stat.response
+                    if isinstance(resp, bytes):
+                        resp = resp.decode(errors="ignore")
+                    return resp.strip()
+        except Exception as e:
+            print(f"Query stat error: {e}")
+        return None
+
+    def _update_stats_label(self):
+        if hasattr(self, "stats_label"):
+            self.stats_label.configure(text=self._get_stats_text())
+
     def _bind_long_press(self, button, direction):
         button.bind("<ButtonPress-1>", lambda e: self._start_continuous_move(direction))
         button.bind(
@@ -152,4 +216,7 @@ class TelloGUIController:
 if __name__ == "__main__":
     root = ctk.CTk()
     app = TelloGUIController(root)
-    root.mainloop()
+    try:
+        root.mainloop()
+    finally:
+        app._stop_stats = True
