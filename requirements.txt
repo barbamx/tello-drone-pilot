@@ -1,6 +1,3 @@
 keyboard
 #inputs
-#mouse
-#pyautogui
-#customtkinter
-textual
+kivy
