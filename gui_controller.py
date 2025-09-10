@@ -197,31 +197,34 @@ class TelloGUI(BoxLayout):
         time.sleep(1)
         self.capture = cv2.VideoCapture("udp://0.0.0.0:11111")
         self.video_streaming = True
+
+        # Start thread to continuously grab frames
+        self.latest_frame = None
+        threading.Thread(target=self._frame_reader, daemon=True).start()
+
+        # Schedule texture update at ~30 FPS
         Clock.schedule_interval(self.update_video_frame, 1 / 30)
 
-    def stop_video_stream(self):
-        self.video_streaming = False
-        if self.capture:
-            self.capture.release()
-            self.capture = None
-        self.video_image.texture = None
+    def _frame_reader(self):
+        """Thread: constantly read frames from Tello and store the latest one"""
+        while self.video_streaming and self.capture:
+            ret, frame = self.capture.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.latest_frame = frame
+            else:
+                time.sleep(0.01)  # small pause to avoid busy loop
 
     def update_video_frame(self, dt):
-        if not self.video_streaming or not self.capture:
+        """UI thread: update Kivy texture only from the latest frame"""
+        if not self.video_streaming or self.latest_frame is None:
             return
-        ret, frame = self.capture.read()
-        if ret:
-            # Convert BGR to RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            buf = frame.tobytes()
-            texture = Texture.create(
-                size=(frame.shape[1], frame.shape[0]), colorfmt="rgb"
-            )
-            texture.blit_buffer(buf, colorfmt="rgb", bufferfmt="ubyte")
-            self.video_image.texture = texture
-        else:
-            # If frame not received, stop video
-            self.stop_video_stream()
+
+        frame = self.latest_frame
+        buf = frame.tobytes()
+        texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt="rgb")
+        texture.blit_buffer(buf, colorfmt="rgb", bufferfmt="ubyte")
+        self.video_image.texture = texture
 
 
 class TelloKivyApp(App):
