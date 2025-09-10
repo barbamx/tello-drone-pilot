@@ -1,2 +1,4 @@
 keyboard
 kivy
+opencv-python
+numpy

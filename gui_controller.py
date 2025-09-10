@@ -9,6 +9,12 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.clock import Clock
 
+# For video streaming
+import cv2
+import numpy as np
+from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
+
 
 class TelloGUI(BoxLayout):
     def __init__(self, **kwargs):
@@ -18,6 +24,10 @@ class TelloGUI(BoxLayout):
         self.movement_interval = 0.15
         self.is_flying = False
         self._stop_stats = False
+
+        # Video stream attributes
+        self.video_streaming = False
+        self.capture = None
 
         # Status display
         self.status_label = Label(
@@ -93,9 +103,19 @@ class TelloGUI(BoxLayout):
             font_size=20,
         )
         btn_emergency.bind(on_press=lambda _: self.emergency())
+
+        # Video button
+        btn_video = Button(
+            text="Start Video",
+            background_color=(0.2, 0.5, 1, 1),
+            font_size=20,
+        )
+        btn_video.bind(on_press=lambda _: self.toggle_video())
+
         control_box.add_widget(btn_takeoff)
         control_box.add_widget(btn_land)
         control_box.add_widget(btn_emergency)
+        control_box.add_widget(btn_video)
         self.add_widget(control_box)
 
         # Help label
@@ -106,6 +126,10 @@ class TelloGUI(BoxLayout):
                 font_size=14,
             )
         )
+
+        # Video display
+        self.video_image = Image(size_hint=(1, 0.5))
+        self.add_widget(self.video_image)
 
         # Initialize Tello and start stats polling
         threading.Thread(target=self._init_tello_thread, daemon=True).start()
@@ -161,6 +185,43 @@ class TelloGUI(BoxLayout):
         threading.Thread(
             target=self.tello.send_command, args=("emergency",), daemon=True
         ).start()
+
+    def toggle_video(self):
+        if not self.video_streaming:
+            threading.Thread(target=self.start_video_stream, daemon=True).start()
+        else:
+            self.stop_video_stream()
+
+    def start_video_stream(self):
+        self.tello.send_command("streamon")
+        time.sleep(1)
+        self.capture = cv2.VideoCapture("udp://0.0.0.0:11111")
+        self.video_streaming = True
+        Clock.schedule_interval(self.update_video_frame, 1 / 30)
+
+    def stop_video_stream(self):
+        self.video_streaming = False
+        if self.capture:
+            self.capture.release()
+            self.capture = None
+        self.video_image.texture = None
+
+    def update_video_frame(self, dt):
+        if not self.video_streaming or not self.capture:
+            return
+        ret, frame = self.capture.read()
+        if ret:
+            # Convert BGR to RGB
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            buf = frame.tobytes()
+            texture = Texture.create(
+                size=(frame.shape[1], frame.shape[0]), colorfmt="rgb"
+            )
+            texture.blit_buffer(buf, colorfmt="rgb", bufferfmt="ubyte")
+            self.video_image.texture = texture
+        else:
+            # If frame not received, stop video
+            self.stop_video_stream()
 
 
 class TelloKivyApp(App):
