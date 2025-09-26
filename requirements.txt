@@ -1,5 +1,4 @@
 keyboard
-#inputs
-mouse
-#pyautogui
-customtkinter
+kivy
+opencv-python
+numpy
